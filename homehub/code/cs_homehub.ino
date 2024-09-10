@@ -30,6 +30,13 @@
 #include <ESPAsyncWebServer.h>
 #include "time.h"
 
+// Esto se incluye en: Sketch -> Include Library -> WiFiManager
+#include <WiFiManager.h>
+#include <strings_en.h>
+#include <wm_consts_en.h>
+#include <wm_strings_en.h>
+#include <wm_strings_es.h>
+
 //Screen Variables
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
@@ -481,6 +488,13 @@ float b = 4;
 unsigned long previousMillis = 0; //WiFi Reconnecting Variables
 unsigned long interval = 5000;
 
+// WiFiManager instance and parameters for Captive Portal
+WiFiManager wm;
+
+WiFiManagerParameter* name_text_box = nullptr;
+WiFiManagerParameter* owner_text_box = nullptr;
+
+
 void setup() {
   // Begin
   Serial.begin(115200);
@@ -525,7 +539,17 @@ void setup() {
   display.display();
   delay(2000);
 
-  WiFi.begin(ssid, password);
+  //WiFi.begin(ssid, password);
+  // Probando conexión
+
+  if (!wm.autoConnect("HomeHub", "Axol")){ // SSID: HomeHub. Password: Axol
+    Serial.println("Falló la conexión");
+    delay(4000);
+    ESP.restart();
+  }
+  
+  Serial.println("Se estableció una conexión al Home Hub!");
+
 
   while (WiFi.status() != WL_CONNECTED) { // Check wi-fi is connected to wi-fi network
     delay(1000);
@@ -651,8 +675,33 @@ void loop() {
     server_send();
     sending_activity = false;
   }
+
+  // B Button
+  if (get_buttons() == 6) { // Register device
+    registerDeviceParameters();
+  }
+
 }
 
+void removeParameters(WiFiManagerParameter*& text_box){
+  if (text_box){
+    wm.removeParameter(text_box);
+    delete text_box;
+    text_box = nullptr;
+  }
+}
+
+void registerDeviceParameters(){
+  removeParameters(name_text_box);
+  removeParameters(owner_text_box);
+
+  name_text_box = new WiFiManagerParameter("name_text_box", "name", "", 50);
+  owner_text_box = new WiFiManagerParameter("owner_text_box", "owner", "", 50);
+
+  wm.addParameter(name_text_box);
+  wm.addParameter(owner_text_box);
+
+}
 
 int get_buttons() { //Funtion returns int from 1 - 6
 
